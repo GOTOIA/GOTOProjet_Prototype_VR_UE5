@@ -126,6 +126,46 @@ void AVRCharacter::UpdateBlinkers()
 	float Radius = RadiusVsVelocity->GetFloatValue(Speed);
 
 	BlinkerMaterialInstance->SetScalarParameterValue(TEXT("Radius"), Radius);
+
+	FVector2D Center = GetBlinkerCenter();
+	BlinkerMaterialInstance->SetVectorParameterValue(TEXT("Center"), FLinearColor(Center.X, Center.Y, 0));
+}
+
+FVector2D AVRCharacter::GetBlinkerCenter()
+{
+	FVector MoveDirection = GetVelocity().GetSafeNormal();
+	if (MoveDirection.IsNearlyZero())
+	{
+		return FVector2D(0.5, 0.5);
+	}
+
+	FVector WorldStationaryLocation;
+	if (FVector::DotProduct(Camera->GetForwardVector(), MoveDirection) > 0)
+	{
+		WorldStationaryLocation = Camera->GetComponentLocation() + MoveDirection * 1000;
+	}
+	else
+	{
+		WorldStationaryLocation = Camera->GetComponentLocation() - MoveDirection * 1000;
+	}
+
+	
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+
+	if (PC == NULL) {
+		return FVector2D(0.5, 0.5);
+	}
+	FVector2D ScreenStationaryLocation;
+	PC->ProjectWorldLocationToScreen(WorldStationaryLocation, ScreenStationaryLocation);
+
+	int32 SizeX, SizeY;
+	PC->GetViewportSize(SizeX, SizeY);
+	ScreenStationaryLocation.X /= SizeX;
+	ScreenStationaryLocation.Y /= SizeY;
+
+
+	return ScreenStationaryLocation;
 }
 
 
@@ -134,21 +174,16 @@ void AVRCharacter::BeginTeleport() {
 
 	UE_LOG(LogTemp, Warning, TEXT("Teleport"));
 
-	APlayerController* PC = Cast<APlayerController>(GetController());
-
 
 	OnTeleportFinished.BindUObject(this, &AVRCharacter::FinishTeleport);
 
 	if (bHit) {
-		if (PC != NULL) {
-			PC->PlayerCameraManager->StartCameraFade(0, 1, TeleportFadeTime, FLinearColor::Black);
-			UE_LOG(LogTemp, Warning, TEXT("Fade camera"));
+		
+		StartFade(0, 1);	
 
-			//wait for the fade to finish
-			FTimerHandle TimerHandle;
-			GetWorldTimerManager().SetTimer(TimerHandle, this, &AVRCharacter::ExecuteFinishTeleport, TeleportFadeTime);
-
-		}
+		//wait for the fade to finish
+		FTimerHandle TimerHandle;
+		GetWorldTimerManager().SetTimer(TimerHandle, this, &AVRCharacter::ExecuteFinishTeleport, TeleportFadeTime);
 
 
 	}
@@ -173,6 +208,16 @@ void AVRCharacter::FinishTeleport() {
 	if (PC != NULL) {
 		PC->PlayerCameraManager->StartCameraFade(1, 0, TeleportFadeTime, FLinearColor::Black);
 
+	}
+}
+
+void AVRCharacter::StartFade(float FromAlpha, float ToAlpha)
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+
+	if (PC != NULL) {
+		PC->PlayerCameraManager->StartCameraFade(FromAlpha,ToAlpha, TeleportFadeTime, FLinearColor::Black);
+		UE_LOG(LogTemp, Warning, TEXT("Fade camera"));
 	}
 }
 
