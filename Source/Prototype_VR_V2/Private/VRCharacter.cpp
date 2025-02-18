@@ -6,7 +6,6 @@
 
 
 
-
 // Sets default values
 AVRCharacter::AVRCharacter()
 {
@@ -18,6 +17,15 @@ AVRCharacter::AVRCharacter()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
+
+	// Création des Motion Controllers
+	LeftHand = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftHand"));
+	LeftHand->SetupAttachment(RootComponent); // Attache à la racine
+	LeftHand->SetTrackingSource(EControllerHand::Left); // Définit la main gauche
+
+	RightHand = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightHand"));
+	RightHand->SetupAttachment(RootComponent); // Attache à la racine
+	RightHand->SetTrackingSource(EControllerHand::Right); // Définit la main droite
 
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DestinationMarker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());

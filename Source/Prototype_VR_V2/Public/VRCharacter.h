@@ -9,9 +9,9 @@
 #include "Components/PostProcessComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
+#include "MotionControllerComponent.h"
 #include "VRCharacter.generated.h"
 
-//#include "MotionControllerComponent.generated.h"
 
 DECLARE_DELEGATE(FOnCameraFadeComplete);
 
@@ -38,6 +38,13 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	FOnCameraFadeComplete OnTeleportFinished;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class UMotionControllerComponent* LeftHand;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class UMotionControllerComponent* RightHand;
+
 
 
 private:
