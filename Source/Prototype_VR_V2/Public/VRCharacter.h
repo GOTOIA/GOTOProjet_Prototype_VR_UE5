@@ -62,6 +62,10 @@ private:
 	class UMaterialInterface* BlinkerMaterialBase;
 
 	UPROPERTY(EditAnywhere)
+	class UCurveFloat* RadiusVsVelocity;	
+
+
+	UPROPERTY(EditAnywhere)
 	float MaxTeleportDistance = 1000;
 
 	bool bHit;
@@ -80,6 +84,8 @@ private:
 
 
 	void UpdateDestinationMarker();
+
+	void UpdateBlinkers();
 
 
 

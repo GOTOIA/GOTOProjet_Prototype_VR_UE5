@@ -39,7 +39,6 @@ void AVRCharacter::BeginPlay()
 		BlinkerMaterialInstance = UMaterialInstanceDynamic::Create(BlinkerMaterialBase, this);
 		PostProcessComponent->AddOrUpdateBlendable(BlinkerMaterialInstance);
 
-		BlinkerMaterialInstance->SetScalarParameterValue(TEXT("Radius"), 0.6);
 	}
 
 
@@ -58,6 +57,7 @@ void AVRCharacter::Tick(float DeltaTime)
 	VRRoot->AddWorldOffset(-NewCameraOffset);
 
 	UpdateDestinationMarker();
+	UpdateBlinkers();
 
 
 }
@@ -67,8 +67,8 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
-	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("MovementAxisRight_Y"), this, &AVRCharacter::MoveForward);
+	PlayerInputComponent->BindAxis(TEXT("MovementAxisRight_X"), this, &AVRCharacter::MoveRight);
 
 	PlayerInputComponent->BindAction(TEXT("Teleport"), IE_Pressed, this, &AVRCharacter::BeginTeleport);
 
@@ -115,6 +115,17 @@ void AVRCharacter::UpdateDestinationMarker()
 		DestinationMarker->SetVisibility(false);
 	}
 
+}
+
+void AVRCharacter::UpdateBlinkers()
+{
+
+	if (RadiusVsVelocity == nullptr) return;
+
+	float Speed = GetVelocity().Size();
+	float Radius = RadiusVsVelocity->GetFloatValue(Speed);
+
+	BlinkerMaterialInstance->SetScalarParameterValue(TEXT("Radius"), Radius);
 }
 
 
