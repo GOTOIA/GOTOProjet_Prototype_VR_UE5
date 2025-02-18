@@ -92,7 +92,7 @@ private:
 	FVector2D GetBlinkerCenter();
 
 
-
+	void DrawTeleportCurve(FHitResult HitResult);
 
 
 };

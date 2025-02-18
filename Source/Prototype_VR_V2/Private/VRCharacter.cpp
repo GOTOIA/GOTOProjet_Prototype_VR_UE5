@@ -2,7 +2,7 @@
 
 
 #include "VRCharacter.h"
-
+#include "Math/UnrealMathUtility.h"
 
 
 
@@ -58,6 +58,7 @@ void AVRCharacter::Tick(float DeltaTime)
 
 	UpdateDestinationMarker();
 	UpdateBlinkers();
+	
 
 
 }
@@ -105,7 +106,7 @@ void AVRCharacter::UpdateDestinationMarker()
 	{
 
 		DestinationMarker->SetVisibility(true);
-
+		DrawTeleportCurve(HitResult);
 		DestinationMarker->SetWorldLocation(HitResult.Location);
 
 
@@ -166,6 +167,43 @@ FVector2D AVRCharacter::GetBlinkerCenter()
 
 
 	return ScreenStationaryLocation;
+}
+
+void AVRCharacter::DrawTeleportCurve(FHitResult HitResult)
+{
+
+	FVector StartLocation = Camera->GetComponentLocation();//Point de départ Caméra
+	FVector TargetLocation = HitResult.Location; // Point d'impact (marker)
+	
+
+	//DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 0.1f, 0, 2.0f);
+	
+	TArray<FVector> PathPoints;
+
+	// Paramètres de la parabole
+	float ArcHeight = 50.0f; // Hauteur de la courbe (à ajuster)
+	int NumPoints = 30; // Nombre de segments de la courbe
+	float TimeStep = 1.0f / NumPoints; // Petit incrément de temps
+
+	for (int i = 0; i <= NumPoints; i++)
+	{
+		float Alpha = i * TimeStep; // Valeur entre 0 et 1
+		FVector Point = FMath::Lerp(StartLocation, TargetLocation, Alpha); // Interpolation linéaire
+
+		// Appliquer l'effet de la parabole (modifie la hauteur Y)
+		Point.Z += ArcHeight * FMath::Sin(Alpha * PI); // Courbe sinus pour la hauteur
+
+		PathPoints.Add(Point);
+	}
+
+	// Tracer la courbe avec des lignes vertes
+	for (int i = 0; i < PathPoints.Num() - 1; i++)
+	{
+		DrawDebugLine(GetWorld(), PathPoints[i], PathPoints[i + 1], FColor::Green, false, 0.1f, 0, 2.0f);
+	}
+	
+
+
 }
 
 
