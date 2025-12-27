@@ -10,7 +10,9 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 #include "MotionControllerComponent.h"
+#include "VRHandGrabber.h"
 #include "VRCharacter.generated.h"
+
 
 
 DECLARE_DELEGATE(FOnCameraFadeComplete);
@@ -40,11 +42,52 @@ public:
 	FOnCameraFadeComplete OnTeleportFinished;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
-	class UMotionControllerComponent* LeftHand;
+	class UMotionControllerComponent* LeftHandMC;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
-	class UMotionControllerComponent* RightHand;
+	class USkeletalMeshComponent* LeftHandMeshMC;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* HandOffsetLeft;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* L_GrabTarget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USphereComponent* L_GrabSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class UMotionControllerComponent* RightHandMC;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USkeletalMeshComponent* RightHandMeshMC;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* HandOffsetRight;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* PointerOrigin_Left;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* PointerOrigin_Right;
+
+	// Ajoute 2 composants "grabber", un pour chaque main
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR|Grab")
+	UVRHandGrabber* LeftGrabber;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR|Grab")
+	UVRHandGrabber* RightGrabber;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPhysicsHandleComponent* PhysicsHandle_L;
+
+	// Bindings d’inputs
+    void OnGrabLeftPressed();
+    void OnGrabLeftReleased();
+    /*void OnGrabRightPressed();
+    void OnGrabRightReleased();*/
+
+	
 
 
 private:
@@ -88,6 +131,8 @@ private:
 	void FinishTeleport();
 
 	void StartFade(float FromAlpha, float ToAlpha);
+
+	bool IsOnNavMesh(UWorld* World, const FVector& Location, FVector& OutProjected, float QueryRadius, TSubclassOf<UNavigationQueryFilter> FilterClass);
 
 	void ExecuteFinishTeleport();
 

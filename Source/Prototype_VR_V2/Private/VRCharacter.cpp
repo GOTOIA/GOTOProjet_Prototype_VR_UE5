@@ -2,7 +2,15 @@
 
 
 #include "VRCharacter.h"
+#include "Components/SceneComponent.h"
+#include "Components/SphereComponent.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "Math/UnrealMathUtility.h"
+#include "NavigationSystem.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "NavMesh/RecastNavMesh.h"
+#include "Engine/World.h"
+
 
 
 
@@ -19,13 +27,43 @@ AVRCharacter::AVRCharacter()
 	Camera->SetupAttachment(VRRoot);
 
 	// Création des Motion Controllers
-	LeftHand = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftHand"));
-	LeftHand->SetupAttachment(RootComponent); // Attache à la racine
-	LeftHand->SetTrackingSource(EControllerHand::Left); // Définit la main gauche
+	//Left Hand------------------------------------------
+	LeftHandMC = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftHand"));
+	LeftHandMC->SetupAttachment(VRRoot); // Attache à la racine du VRRoot
+	LeftHandMC->SetTrackingSource(EControllerHand::Left); // Définit la main gauche
 
-	RightHand = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightHand"));
-	RightHand->SetupAttachment(RootComponent); // Attache à la racine
-	RightHand->SetTrackingSource(EControllerHand::Right); // Définit la main droite
+	HandOffsetLeft = CreateDefaultSubobject<USceneComponent>(TEXT("HandOffsetLeft"));
+	HandOffsetLeft->SetupAttachment(LeftHandMC);
+
+	LeftHandMeshMC= CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandMesh"));
+	LeftHandMeshMC->SetupAttachment(HandOffsetLeft);
+
+	PointerOrigin_Left = CreateDefaultSubobject<USceneComponent>(TEXT("PointerOrigin_Left"));
+	PointerOrigin_Left->SetupAttachment(HandOffsetLeft);
+
+	L_GrabTarget = CreateDefaultSubobject<USceneComponent>(TEXT("L_GrabTarget"));
+	L_GrabTarget->SetupAttachment(LeftHandMC);
+
+	L_GrabSphere = CreateDefaultSubobject<USphereComponent>(TEXT("L_GrabSphere"));
+	L_GrabSphere->SetupAttachment(L_GrabTarget);
+
+	//------------------------------
+
+	//Right Hand------------------------------------------
+	RightHandMC = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightHand"));
+	RightHandMC->SetupAttachment(VRRoot); // Attache à la racine du VRRoot
+	RightHandMC->SetTrackingSource(EControllerHand::Right); // Définit la main droite
+
+	HandOffsetRight = CreateDefaultSubobject<USceneComponent>(TEXT("HandOffsetRight"));
+	HandOffsetRight->SetupAttachment(RightHandMC);
+
+	RightHandMeshMC = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandMesh"));
+	RightHandMeshMC->SetupAttachment(HandOffsetRight);
+
+	PointerOrigin_Right = CreateDefaultSubobject<USceneComponent>(TEXT("PointerOrigin_Right"));
+	PointerOrigin_Right->SetupAttachment(HandOffsetRight);
+
+	//------------------------------
 
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DestinationMarker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());
@@ -33,12 +71,33 @@ AVRCharacter::AVRCharacter()
 	PostProcessComponent = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComponent"));
 	PostProcessComponent->SetupAttachment(GetRootComponent());
 
+	//Physics Handle
+	PhysicsHandle_L = CreateDefaultSubobject<UPhysicsHandleComponent>(TEXT("PhysicsHandle_L"));
+
+	//Grabber
+	// Création des composants (tu peux aussi les ajouter depuis le Blueprint parent)
+	LeftGrabber = CreateDefaultSubobject<UVRHandGrabber>(TEXT("LeftGrabber"));
+	RightGrabber = CreateDefaultSubobject<UVRHandGrabber>(TEXT("RightGrabber"));
+
+
+	
+
 }
 
 // Called when the game starts or when spawned
 void AVRCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//Left Get grabber set propriétés
+	if (LeftGrabber)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LeftGrabber a une reference"));
+		LeftGrabber->GrabTarget = L_GrabTarget;
+		LeftGrabber->GrabSphere = L_GrabSphere;
+		LeftGrabber->PhysicsHandle = PhysicsHandle_L;
+	}
+
 
 	DestinationMarker->SetVisibility(false);
 
@@ -49,6 +108,7 @@ void AVRCharacter::BeginPlay()
 
 	}
 
+	
 
 }
 
@@ -81,6 +141,13 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	PlayerInputComponent->BindAction(TEXT("Teleport"), IE_Pressed, this, &AVRCharacter::BeginTeleport);
 
+	// Mappe ces actions dans Project Settings > Input
+	PlayerInputComponent->BindAction("GrabLeft", IE_Pressed, this, &AVRCharacter::OnGrabLeftPressed);
+	PlayerInputComponent->BindAction("GrabLeft", IE_Released, this, &AVRCharacter::OnGrabLeftReleased);
+	//TODO: Right Grab
+	//TODO :Add commentaires
+	/*PlayerInputComponent->BindAction("GrabRight", IE_Pressed, this, &AVRCharacter::OnGrabRightPressed);
+	PlayerInputComponent->BindAction("GrabRight", IE_Released, this, &AVRCharacter::OnGrabRightReleased);*/
 
 
 }
@@ -89,28 +156,30 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 void AVRCharacter::MoveForward(float throttle)
 {
 
-	//UE_LOG(LogTemp, Warning, TEXT("En avant ou en arriere %f"), throttle);
 	AddMovementInput(throttle * Camera->GetForwardVector());
 
 }
 
 void AVRCharacter::MoveRight(float throttle)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("A droite ou a gauche %f"), throttle);
 	AddMovementInput(throttle * Camera->GetRightVector());
 
 }
 
 void AVRCharacter::UpdateDestinationMarker()
 {
+	bool onNavMesh = false;
 
-	FVector Start = Camera->GetComponentLocation();
-	FVector End = Start + Camera->GetForwardVector() * MaxTeleportDistance;
+	FVector Start = PointerOrigin_Right->GetComponentLocation();
+	FVector End = Start + PointerOrigin_Right->GetForwardVector() * MaxTeleportDistance;
 
 	FHitResult HitResult;
 	bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility);
 
-	if (bHit)
+	FVector projectedLocation = FVector::ZeroVector;
+	onNavMesh = IsOnNavMesh(GetWorld(), End, projectedLocation, 50.f, nullptr);
+
+	if (bHit && onNavMesh)
 	{
 
 		DestinationMarker->SetVisibility(true);
@@ -149,13 +218,13 @@ FVector2D AVRCharacter::GetBlinkerCenter()
 	}
 
 	FVector WorldStationaryLocation;
-	if (FVector::DotProduct(Camera->GetForwardVector(), MoveDirection) > 0)
+	if (FVector::DotProduct(PointerOrigin_Right->GetForwardVector(), MoveDirection) > 0)
 	{
-		WorldStationaryLocation = Camera->GetComponentLocation() + MoveDirection * 1000;
+		WorldStationaryLocation = PointerOrigin_Right->GetComponentLocation() + MoveDirection * 1000;
 	}
 	else
 	{
-		WorldStationaryLocation = Camera->GetComponentLocation() - MoveDirection * 1000;
+		WorldStationaryLocation = PointerOrigin_Right->GetComponentLocation() - MoveDirection * 1000;
 	}
 
 	
@@ -177,10 +246,11 @@ FVector2D AVRCharacter::GetBlinkerCenter()
 	return ScreenStationaryLocation;
 }
 
+//TODO Add Spline + texture Component to draw the curve
 void AVRCharacter::DrawTeleportCurve(FHitResult HitResult)
 {
 
-	FVector StartLocation = Camera->GetComponentLocation();//Point de départ Caméra
+	FVector StartLocation = PointerOrigin_Right->GetComponentLocation();//Point de la main
 	FVector TargetLocation = HitResult.Location; // Point d'impact (marker)
 	
 
@@ -223,7 +293,15 @@ void AVRCharacter::BeginTeleport() {
 
 	OnTeleportFinished.BindUObject(this, &AVRCharacter::FinishTeleport);
 
-	if (bHit) {
+	FVector projectedLocation = FVector::ZeroVector;
+
+
+	bool onNavMesh = IsOnNavMesh(GetWorld(), DestinationMarker->GetComponentLocation(), projectedLocation, 50.f,nullptr);
+
+
+	if (bHit && onNavMesh) {
+		
+		UE_LOG(LogTemp, Warning, TEXT("Destination : %s "), *DestinationMarker->GetComponentLocation().ToString());
 		
 		StartFade(0, 1);	
 
@@ -266,4 +344,57 @@ void AVRCharacter::StartFade(float FromAlpha, float ToAlpha)
 		UE_LOG(LogTemp, Warning, TEXT("Fade camera"));
 	}
 }
+//TODO Test if on navmesh	
+bool AVRCharacter:: IsOnNavMesh(UWorld* World, const FVector& Location,
+	FVector& OutProjected, float QueryRadius = 50.f,
+	TSubclassOf<UNavigationQueryFilter> FilterClass = nullptr)
+{
+	if (!World) return false;
+
+	UNavigationSystemV1* NavSysteme = UNavigationSystemV1::GetCurrent(World);
+	if (!NavSysteme) return false;
+
+	ANavigationData* NavData = NavSysteme->GetDefaultNavDataInstance(FNavigationSystem::DontCreate);
+	if (!NavData) return false;
+
+	FNavLocation NavLoc;
+	// Taille de la boîte de recherche autour du point
+	const FVector QueryExtent(QueryRadius, QueryRadius, 200.f);
+
+	//FSharedConstNavQueryFilter QueryFilter = NavSysteme->GetDefaultNavDataInstance()->GetQueryFilter(FilterClass);
+
+	FSharedConstNavQueryFilter QueryFilter = UNavigationQueryFilter::GetQueryFilter(*NavData, FilterClass);
+	
+	const bool bOk = NavSysteme->ProjectPointToNavigation(
+		Location,                 // point à tester
+		NavLoc,                   // out
+		QueryExtent,              // rayon/extent de recherche
+		NavData,                  // nav data (null = défaut)
+		QueryFilter                 // filtre de nav
+	);
+
+	if (bOk) OutProjected = NavLoc.Location;
+	
+	return bOk;
+}
+
+
+void AVRCharacter::OnGrabLeftPressed() { 
+	
+	if (LeftGrabber)  
+		LeftGrabber->GrabObject(); 
+
+}
+
+void AVRCharacter::OnGrabLeftReleased() { 
+
+	if (LeftGrabber)  
+		LeftGrabber->ReleaseObject(); 
+
+}
+
+
+
+//void AVRCharacter::OnGrabRightPressed() { if (RightGrabber) RightGrabber->GrabObject(); }
+//void AVRCharacter::OnGrabRightReleased() { if (RightGrabber) RightGrabber->ReleaseObject(); }
 
