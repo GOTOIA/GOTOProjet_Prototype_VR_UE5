@@ -18,4 +18,6 @@ Saved
 [Cc]ontent/__ExternalActors__/
 [Cc]ontent/__ExternalObjects__/
 
-[Cc]ontent/Maps/*_BuiltData.uasset
+# Unreal Engine - Generated build / lighting data
+*_BuiltData.uasset
+*_BuiltData.uasset.meta
