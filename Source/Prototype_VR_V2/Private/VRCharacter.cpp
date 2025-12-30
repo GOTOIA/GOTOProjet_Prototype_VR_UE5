@@ -2,6 +2,7 @@
 
 
 #include "VRCharacter.h"
+#include "NavFilters/NavigationQueryFilter.h"
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
@@ -10,6 +11,7 @@
 #include "AI/Navigation/NavigationTypes.h"
 #include "NavMesh/RecastNavMesh.h"
 #include "Engine/World.h"
+
 
 
 

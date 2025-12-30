@@ -8,9 +8,9 @@ public class Prototype_VR_V2 : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore","HeadMountedDisplay" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore","HeadMountedDisplay","NavigationSystem" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "NavigationSystem", "AIModule" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AIModule" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

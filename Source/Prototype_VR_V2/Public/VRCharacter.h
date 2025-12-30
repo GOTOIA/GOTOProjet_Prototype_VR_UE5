@@ -13,7 +13,7 @@
 #include "VRHandGrabber.h"
 #include "VRCharacter.generated.h"
 
-
+class UNavigationQueryFilter; 
 
 DECLARE_DELEGATE(FOnCameraFadeComplete);
 
