@@ -49,6 +49,16 @@
 				"Android",
 				"VisionOS"
 			]
+		},
+		{
+			"Name": "XRVisualization",
+			"Enabled": true
 		}
+	],
+	"TargetPlatforms": [
+		"Android",
+		"IOS",
+		"Windows",
+		"Mac"
 	]
 }

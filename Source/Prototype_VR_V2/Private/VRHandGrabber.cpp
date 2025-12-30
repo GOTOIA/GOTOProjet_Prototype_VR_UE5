@@ -24,6 +24,7 @@ UVRHandGrabber::UVRHandGrabber()
 void UVRHandGrabber::BeginPlay()
 {
 	Super::BeginPlay();    
+    
 	
 }
 
@@ -69,7 +70,7 @@ UPrimitiveComponent* UVRHandGrabber::GetBestCandidate()
     {
         if (!C) continue;
         AActor* OtherOwner = C->GetOwner();
-        if (!OtherOwner || OtherOwner == SelfOwner) continue; // ignore soi-même
+        if (!OtherOwner || OtherOwner == SelfOwner) continue; // ignore soi-mï¿½me
 
 		if (!IsComponentAcceptable(C)) continue;
 

@@ -397,4 +397,3 @@ void AVRCharacter::OnGrabLeftReleased() {
 
 //void AVRCharacter::OnGrabRightPressed() { if (RightGrabber) RightGrabber->GrabObject(); }
 //void AVRCharacter::OnGrabRightReleased() { if (RightGrabber) RightGrabber->ReleaseObject(); }
-
