@@ -63,6 +63,12 @@ AVRCharacter::AVRCharacter()
 	PointerOrigin_Right = CreateDefaultSubobject<USceneComponent>(TEXT("PointerOrigin_Right"));
 	PointerOrigin_Right->SetupAttachment(HandOffsetRight);
 
+	R_GrabTarget = CreateDefaultSubobject<USceneComponent>(TEXT("R_GrabTarget"));
+	R_GrabTarget->SetupAttachment(RightHandMC);
+
+	R_GrabSphere = CreateDefaultSubobject<USphereComponent>(TEXT("R_GrabSphere"));
+	R_GrabSphere->SetupAttachment(R_GrabTarget);
+
 	//------------------------------
 
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DestinationMarker"));
@@ -73,6 +79,9 @@ AVRCharacter::AVRCharacter()
 
 	//Physics Handle
 	PhysicsHandle_L = CreateDefaultSubobject<UPhysicsHandleComponent>(TEXT("PhysicsHandle_L"));
+	PhysicsHandle_R= CreateDefaultSubobject<UPhysicsHandleComponent>(TEXT("PhysicsHandle_R"));
+
+
 
 	//Grabber
 	// Création des composants (tu peux aussi les ajouter depuis le Blueprint parent)
@@ -96,6 +105,16 @@ void AVRCharacter::BeginPlay()
 		LeftGrabber->GrabTarget = L_GrabTarget;
 		LeftGrabber->GrabSphere = L_GrabSphere;
 		LeftGrabber->PhysicsHandle = PhysicsHandle_L;
+	}
+
+
+	//Right Get grabber set propriétés
+	if (LeftGrabber)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RightGrabber a une reference"));
+		RightGrabber->GrabTarget = R_GrabTarget;
+		RightGrabber->GrabSphere = R_GrabSphere;
+		RightGrabber->PhysicsHandle = PhysicsHandle_R;
 	}
 
 
@@ -138,16 +157,16 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	PlayerInputComponent->BindAxis(TEXT("MovementAxisRight_Y"), this, &AVRCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("MovementAxisRight_X"), this, &AVRCharacter::MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("MovementAxisLeft_X"), this, &AVRCharacter::TurnAtRate);
 
 	PlayerInputComponent->BindAction(TEXT("Teleport"), IE_Pressed, this, &AVRCharacter::BeginTeleport);
 
 	// Mappe ces actions dans Project Settings > Input
 	PlayerInputComponent->BindAction("GrabLeft", IE_Pressed, this, &AVRCharacter::OnGrabLeftPressed);
 	PlayerInputComponent->BindAction("GrabLeft", IE_Released, this, &AVRCharacter::OnGrabLeftReleased);
-	//TODO: Right Grab
-	//TODO :Add commentaires
-	/*PlayerInputComponent->BindAction("GrabRight", IE_Pressed, this, &AVRCharacter::OnGrabRightPressed);
-	PlayerInputComponent->BindAction("GrabRight", IE_Released, this, &AVRCharacter::OnGrabRightReleased);*/
+	
+	PlayerInputComponent->BindAction("GrabRight", IE_Pressed, this, &AVRCharacter::OnGrabRightPressed);
+	PlayerInputComponent->BindAction("GrabRight", IE_Released, this, &AVRCharacter::OnGrabRightReleased);
 
 
 }
@@ -164,6 +183,15 @@ void AVRCharacter::MoveRight(float throttle)
 {
 	AddMovementInput(throttle * Camera->GetRightVector());
 
+}
+
+void AVRCharacter::TurnAtRate(float Rate)
+{
+	float YawDelta = Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds();
+	AddControllerYawInput(YawDelta);
+
+	// Stocker le taux de rotation pour UpdateBlinkers
+	CurrentRotationRate = FMath::Abs(Rate);
 }
 
 void AVRCharacter::UpdateDestinationMarker()
@@ -198,15 +226,45 @@ void AVRCharacter::UpdateDestinationMarker()
 void AVRCharacter::UpdateBlinkers()
 {
 
-	if (RadiusVsVelocity == nullptr) return;
 
-	float Speed = GetVelocity().Size();
-	float Radius = RadiusVsVelocity->GetFloatValue(Speed);
+	if (BlinkerMaterialInstance == nullptr) return;
 
-	BlinkerMaterialInstance->SetScalarParameterValue(TEXT("Radius"), Radius);
+	// Calcul du radius basé sur la vélocité de déplacement
+	float SpeedRadius = 1.0f; // Valeur par défaut (pas de blinker)
+	if (RadiusVsVelocity != nullptr)
+	{
+		float Speed = GetVelocity().Size();
+		SpeedRadius = RadiusVsVelocity->GetFloatValue(Speed);
+	}
 
-	FVector2D Center = GetBlinkerCenter();
-	BlinkerMaterialInstance->SetVectorParameterValue(TEXT("Center"), FLinearColor(Center.X, Center.Y, 0));
+	// Calcul du radius basé sur la rotation
+	float MinRadius = 0.3f;
+	float MaxRadius = 1.0f;
+	float RotationRadius = FMath::Lerp(MaxRadius, MinRadius, CurrentRotationRate);
+
+	// Utiliser le radius le plus restrictif (le plus petit)
+	float FinalRadius = FMath::Min(SpeedRadius, RotationRadius);
+
+	BlinkerMaterialInstance->SetScalarParameterValue(TEXT("Radius"), FinalRadius);
+
+	// Déterminer le centre
+	FVector2D Center;
+	if (CurrentRotationRate > 0.1f)
+	{
+		// Pendant la rotation, centrer sur l'écran
+		Center = FVector2D(0.5f, 0.5f);
+	}
+	else
+	{
+		// Pendant le mouvement, utiliser la direction du mouvement
+		Center = GetBlinkerCenter();
+	}
+
+	BlinkerMaterialInstance->SetVectorParameterValue(TEXT("Center"), FLinearColor(Center.X, Center.Y, 0.f));
+
+	// Réinitialiser le taux de rotation (sera mis à jour par TurnAtRate si rotation active)
+	CurrentRotationRate = FMath::FInterpTo(CurrentRotationRate, 0.f, GetWorld()->GetDeltaSeconds(), 5.f);
+
 }
 
 FVector2D AVRCharacter::GetBlinkerCenter()
@@ -259,7 +317,7 @@ void AVRCharacter::DrawTeleportCurve(FHitResult HitResult)
 	TArray<FVector> PathPoints;
 
 	// Paramètres de la parabole
-	float ArcHeight = 50.0f; // Hauteur de la courbe (à ajuster)
+	float ArcHeight = 100.0f; // Hauteur de la courbe (à ajuster)
 	int NumPoints = 30; // Nombre de segments de la courbe
 	float TimeStep = 1.0f / NumPoints; // Petit incrément de temps
 
@@ -395,6 +453,6 @@ void AVRCharacter::OnGrabLeftReleased() {
 
 
 
-//void AVRCharacter::OnGrabRightPressed() { if (RightGrabber) RightGrabber->GrabObject(); }
-//void AVRCharacter::OnGrabRightReleased() { if (RightGrabber) RightGrabber->ReleaseObject(); }
+void AVRCharacter::OnGrabRightPressed() { if (RightGrabber) RightGrabber->GrabObject(); }
+void AVRCharacter::OnGrabRightReleased() { if (RightGrabber) RightGrabber->ReleaseObject(); }
 

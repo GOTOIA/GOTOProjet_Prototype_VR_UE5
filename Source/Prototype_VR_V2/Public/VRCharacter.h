@@ -56,6 +56,13 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
 	class USphereComponent* L_GrabSphere;
 
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* R_GrabTarget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USphereComponent* R_GrabSphere;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
 	class UMotionControllerComponent* RightHandMC;
 
@@ -81,11 +88,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
 	UPhysicsHandleComponent* PhysicsHandle_L;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPhysicsHandleComponent* PhysicsHandle_R;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR Movement")
+	float BaseTurnRate = 20.f;
+
+
 	// Bindings d’inputs
     void OnGrabLeftPressed();
     void OnGrabLeftReleased();
-    /*void OnGrabRightPressed();
-    void OnGrabRightReleased();*/
+    void OnGrabRightPressed();
+    void OnGrabRightReleased();
 
 	
 
@@ -123,9 +137,15 @@ private:
 	UPROPERTY(EditAnywhere)
 	float TeleportFadeTime = 2.f;
 
+	
+	UPROPERTY()
+	float CurrentRotationRate = 0.f;
+
 
 	void MoveForward(float throttle);
 	void MoveRight(float throttle);
+
+	void TurnAtRate(float Rate);
 
 	void BeginTeleport();
 	void FinishTeleport();
