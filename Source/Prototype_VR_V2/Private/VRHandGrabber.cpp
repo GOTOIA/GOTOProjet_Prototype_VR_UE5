@@ -124,6 +124,11 @@ void UVRHandGrabber::GrabObject()
 {
     if (!PhysicsHandle || PhysicsHandle->GrabbedComponent) return;
 
+  
+    bIsGrabbing = true;
+    OnGrabStateChanged.Broadcast(true);
+	UE_LOG(LogTemp, Warning, TEXT("GrabObject: bIsGrabbing=true"));
+
     UPrimitiveComponent* Candidate = GetBestCandidate();
 
     if (Candidate) {
@@ -164,8 +169,12 @@ void UVRHandGrabber::GrabObject()
 void UVRHandGrabber::ReleaseObject()
 {
     if (!PhysicsHandle) return;
+
     if (PhysicsHandle->GrabbedComponent)
     {
+        bIsGrabbing = false;
+		UE_LOG(LogTemp, Warning, TEXT("ReleaseObject: bIsGrabbing=false"));
+		OnGrabStateChanged.Broadcast(false);
         PhysicsHandle->ReleaseComponent();
 		HeldComp = nullptr;
     }

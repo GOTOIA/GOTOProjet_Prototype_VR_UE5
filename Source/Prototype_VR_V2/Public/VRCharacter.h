@@ -79,10 +79,10 @@ public:
 	class USceneComponent* PointerOrigin_Right;
 
 	// Ajoute 2 composants "grabber", un pour chaque main
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR|Grab")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR|Grab", meta = (AllowPrivateAccess = "true"))
 	UVRHandGrabber* LeftGrabber;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR|Grab")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR|Grab", meta = (AllowPrivateAccess = "true"))
 	UVRHandGrabber* RightGrabber;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))

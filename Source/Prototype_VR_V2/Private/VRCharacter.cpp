@@ -98,7 +98,7 @@ void AVRCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//Left Get grabber set propriétés
+	////Left Get grabber set propriétés
 	if (LeftGrabber)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("LeftGrabber a une reference"));
@@ -108,7 +108,7 @@ void AVRCharacter::BeginPlay()
 	}
 
 
-	//Right Get grabber set propriétés
+	////Right Get grabber set propriétés
 	if (LeftGrabber)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("RightGrabber a une reference"));

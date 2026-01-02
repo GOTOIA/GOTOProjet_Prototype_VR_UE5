@@ -11,6 +11,13 @@ class USphereComponent;
 class UPhysicsHandleComponent;
 class USceneComponent;
 
+// Delegate Blueprint
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnGrabStateChanged,
+	bool,
+	bIsGrabbing
+);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PROTOTYPE_VR_V2_API UVRHandGrabber : public UActorComponent
 {
@@ -28,6 +35,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "VR|Grab")
 	bool IsHolding() const { return HeldComp != nullptr; }
+
+	
 
 protected:
 	// Called when the game starts
@@ -73,6 +82,14 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	int32 DebugValue = 42;
+
+	// grab state
+	UPROPERTY(BlueprintReadOnly, Category = "VR|Grab")
+	bool bIsGrabbing = false;
+
+	////// Event Blueprint
+	UPROPERTY(BlueprintAssignable, Category = "VR|Grab")
+	FOnGrabStateChanged OnGrabStateChanged;
 
 	
 	
