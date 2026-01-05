@@ -9,9 +9,11 @@
 #include "Components/PostProcessComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
+#include "MotionControllerComponent.h"
+#include "VRHandGrabber.h"
 #include "VRCharacter.generated.h"
 
-//#include "MotionControllerComponent.generated.h"
+
 
 DECLARE_DELEGATE(FOnCameraFadeComplete);
 
@@ -39,6 +41,68 @@ public:
 
 	FOnCameraFadeComplete OnTeleportFinished;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class UMotionControllerComponent* LeftHandMC;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USkeletalMeshComponent* LeftHandMeshMC;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* HandOffsetLeft;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* L_GrabTarget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USphereComponent* L_GrabSphere;
+
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* R_GrabTarget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USphereComponent* R_GrabSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class UMotionControllerComponent* RightHandMC;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USkeletalMeshComponent* RightHandMeshMC;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* HandOffsetRight;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* PointerOrigin_Left;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR")
+	class USceneComponent* PointerOrigin_Right;
+
+	// Ajoute 2 composants "grabber", un pour chaque main
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR|Grab", meta = (AllowPrivateAccess = "true"))
+	UVRHandGrabber* LeftGrabber;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR|Grab", meta = (AllowPrivateAccess = "true"))
+	UVRHandGrabber* RightGrabber;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPhysicsHandleComponent* PhysicsHandle_L;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VR", meta = (AllowPrivateAccess = "true"))
+	UPhysicsHandleComponent* PhysicsHandle_R;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VR Movement")
+	float BaseTurnRate = 20.f;
+
+
+	// Bindings d’inputs
+    void OnGrabLeftPressed();
+    void OnGrabLeftReleased();
+    void OnGrabRightPressed();
+    void OnGrabRightReleased();
+
+	
+
 
 private:
 
@@ -62,6 +126,10 @@ private:
 	class UMaterialInterface* BlinkerMaterialBase;
 
 	UPROPERTY(EditAnywhere)
+	class UCurveFloat* RadiusVsVelocity;	
+
+
+	UPROPERTY(EditAnywhere)
 	float MaxTeleportDistance = 1000;
 
 	bool bHit;
@@ -69,20 +137,34 @@ private:
 	UPROPERTY(EditAnywhere)
 	float TeleportFadeTime = 2.f;
 
+	
+	UPROPERTY()
+	float CurrentRotationRate = 0.f;
+
 
 	void MoveForward(float throttle);
 	void MoveRight(float throttle);
 
+	void TurnAtRate(float Rate);
+
 	void BeginTeleport();
 	void FinishTeleport();
+
+	void StartFade(float FromAlpha, float ToAlpha);
+
+	bool IsOnNavMesh(UWorld* World, const FVector& Location, FVector& OutProjected, float QueryRadius, TSubclassOf<UNavigationQueryFilter> FilterClass);
 
 	void ExecuteFinishTeleport();
 
 
 	void UpdateDestinationMarker();
 
+	void UpdateBlinkers();
+
+	FVector2D GetBlinkerCenter();
 
 
+	void DrawTeleportCurve(FHitResult HitResult);
 
 
 };
